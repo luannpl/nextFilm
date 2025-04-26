@@ -9,7 +9,7 @@ services:
     restart: always
     hostname: localhost
     ports:
-      - '6432:5432'
+      - '6433:5432'
     environment:
       - POSTGRES_DB=next_films
       - POSTGRES_USER=root
@@ -26,7 +26,7 @@ services:
     networks:
       - dev-network
     ports:
-      - '5500:5500/tcp'
+      - '6500:5500/tcp'
     volumes:
       - type: bind
         source: .
