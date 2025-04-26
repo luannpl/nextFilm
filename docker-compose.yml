@@ -1,0 +1,44 @@
+services:
+  db:
+    container_name: next_films_postgres
+    networks:
+      - dev-network
+    image: postgres
+    volumes:
+      - ./docker:/docker-entrypoint-initdb.d
+    restart: always
+    hostname: localhost
+    ports:
+      - '6432:5432'
+    environment:
+      - POSTGRES_DB=next_films
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_MULTIPLE_DATABASES=next_films
+
+  app:
+    container_name: next_films_backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    networks:
+      - dev-network
+    ports:
+      - '5500:5500/tcp'
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+      # - .:/app
+    working_dir:
+      /app
+      # - $HOME/.aws/credentials:/root/.aws/credentials:ro
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+networks:
+  dev-network:
+    driver: bridge
+    name: gig-dev-network
