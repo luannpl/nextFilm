@@ -41,4 +41,4 @@ services:
 networks:
   dev-network:
     driver: bridge
-    name: gig-dev-network
+    name: next_films-dev-network
