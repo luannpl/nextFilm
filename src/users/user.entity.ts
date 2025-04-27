@@ -1,8 +1,10 @@
+import { Comment } from 'src/comments/comment.entity';
 import { Post } from 'src/posts/post.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -30,6 +32,9 @@ export class User {
 
   @OneToMany(() => Post, (post) => post.user, { cascade: true })
   posts: Post[];
+
+  @OneToMany(() => Comment, (comment) => comment.user)
+  comments: Comment[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
