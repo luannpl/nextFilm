@@ -1,7 +1,9 @@
+import { Post } from 'src/posts/post.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -25,6 +27,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 255, nullable: false })
   senha: string;
+
+  @OneToMany(() => Post, (post) => post.user, { cascade: true })
+  posts: Post[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
