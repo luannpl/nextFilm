@@ -11,5 +11,5 @@ WORKDIR /app
 COPY --from=build /app/package*.json ./
 RUN npm install --only=production
 COPY --from=build /app/dist ./dist
-EXPOSE 5500
+EXPOSE 6500
 CMD npm run start:dev

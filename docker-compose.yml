@@ -26,7 +26,7 @@ services:
     networks:
       - dev-network
     ports:
-      - '6500:5500/tcp'
+      - '6500:6500/tcp'
     volumes:
       - type: bind
         source: .

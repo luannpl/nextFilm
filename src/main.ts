@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { ValidationPipe } from '@nestjs/common';
+import { ValidationExceptionFilter } from './filters/validation-exception.filter';
 dotenv.config();
 
 async function bootstrap() {
@@ -26,6 +28,9 @@ async function bootstrap() {
     exposedHeaders: ['Set-Cookie'],
     credentials: true,
   });
+
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  app.useGlobalFilters(new ValidationExceptionFilter());
 
   await app.listen(process.env.PORT || 6500);
 }
