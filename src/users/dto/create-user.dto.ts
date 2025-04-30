@@ -11,7 +11,7 @@ export class CreateUserDto {
     
     @IsNotEmpty({ message: 'O campo username é obrigatório' })
     @IsString({ message: 'O campo username deve ser uma string' })
-    username: string;
+    usuario: string;
 
     @IsNotEmpty({ message: 'O campo email é obrigatório' })
     @IsEmail({}, { message: 'O campo email deve ser um email válido' })

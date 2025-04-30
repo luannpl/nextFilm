@@ -28,6 +28,10 @@ async function bootstrap() {
     exposedHeaders: ['Set-Cookie'],
     credentials: true,
   });
+  // console.log('📦 Connecting to DB at:', {
+  //   host: process.env.DB_HOST,
+  //   port: process.env.DB_PORT,
+  // });
 
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   app.useGlobalFilters(new ValidationExceptionFilter());
