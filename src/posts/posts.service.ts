@@ -1,23 +1,39 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Post } from './post.entity';
 
 @Injectable()
 export class PostsService {
-  create(createPostDto: CreatePostDto) {
-    return 'This action adds a new post';
+  private readonly logger = new Logger(PostsService.name);
+  constructor(
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
+  ) {}
+
+  async createPost(createPostDto: CreatePostDto) {
+    this.logger.log('Creating post', createPostDto);
+    return await this.postRepository.save({
+      ...createPostDto,
+      user: { id: createPostDto.user_id },
+    });
   }
 
-  findAll() {
-    return `This action returns all posts`;
+  async findAllPosts() {
+    this.logger.log('Retrieving all posts');
+    return await this.postRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} post`;
+  async findOnePost(id: string) {
+    this.logger.log(`Retrieving post with id: ${id}`);
+    return await this.postRepository.findOne({ where: { id } });
   }
 
-  update(id: number, updatePostDto: UpdatePostDto) {
-    return `This action updates a #${id} post`;
+  async findPostsByUserId(userId: string) {
+    this.logger.log(`Retrieving posts for user with id: ${userId}`);
+    return await this.postRepository.find({ where: { user: { id: userId } } });
   }
 
   remove(id: number) {

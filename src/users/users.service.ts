@@ -8,12 +8,11 @@ import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UsersService {
-
   private readonly logger = new Logger(UsersService.name);
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
   ) {}
 
   async getUserByEmail(email: string) {
@@ -30,20 +29,31 @@ export class UsersService {
     }
 
     const hashSenha = await this.authService.hashPassword(body.senha);
-    this.logger.log('Senha hasheada')
+    this.logger.log('Senha hasheada');
     return this.userRepository.save({
       ...body,
       senha: hashSenha,
     });
-
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async findAll() {
+    const users = await this.userRepository.find();
+    return {
+      users: users.map((user) => {
+        return {
+          ...user,
+          senha: undefined,
+        };
+      }),
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    return {
+      ...user,
+      senha: undefined,
+    };
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {

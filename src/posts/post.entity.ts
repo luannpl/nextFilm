@@ -24,7 +24,7 @@ export class Post {
   @Column({ type: 'int', nullable: false, default: 0 })
   curtidas: number;
 
-  @Column({ type: 'varchar', length: 255, nullable: false })
+  @Column({ nullable: true })
   imagem: string;
 
   @Column({ type: 'varchar', length: 255, nullable: false })

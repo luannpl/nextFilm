@@ -1,4 +1,9 @@
-import { ArgumentsHost, Catch, ExceptionFilter, BadRequestException } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  BadRequestException,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch(BadRequestException)
@@ -10,8 +15,8 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 
     const errorResponse = {
       statusCode: exception.getStatus(),
-      message: 'Validação falhou',
-      errors: exception.getResponse()['message'], 
+      message: 'Requisição falhou',
+      errors: exception.getResponse()['message'],
       path: request.url,
     };
 
