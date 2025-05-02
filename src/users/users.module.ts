@@ -4,11 +4,13 @@ import { UsersController } from './users.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { AuthModule } from 'src/auth/auth.module';
+import { PostsModule } from 'src/posts/posts.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]), // ⬅ necessário para o UserRepository funcionar
-    AuthModule, // ⬅ necessário para injetar o AuthService
+    AuthModule,
+    PostsModule, // ⬅ necessário para injetar o AuthService
   ],
   controllers: [UsersController],
   providers: [UsersService],

@@ -31,12 +31,18 @@ export class PostsService {
     return await this.postRepository.findOne({ where: { id } });
   }
 
-  async findPostsByUserId(userId: string) {
-    this.logger.log(`Retrieving posts for user with id: ${userId}`);
-    return await this.postRepository.find({ where: { user: { id: userId } } });
+  async findByUser(userId: string) {
+    return this.postRepository.find({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} post`;
+  remove(id: string) {
+    this.logger.log(`Removing post with id: ${id}`);
+    return this.postRepository.delete(id);
   }
 }
