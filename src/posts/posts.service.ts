@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -32,17 +32,33 @@ export class PostsService {
   }
 
   async findByUser(userId: string) {
-    return this.postRepository.find({
+    const posts = await this.postRepository.find({
       where: {
-        user: {
-          id: userId,
-        },
+        user: { id: userId },
       },
+      relations: ['user'],
+    });
+
+    return posts.map((post) => {
+      const { senha, ...userWithoutPassword } = post.user;
+      return {
+        ...post,
+        user: userWithoutPassword,
+      };
     });
   }
 
-  remove(id: string) {
+  async updateCurtidas(id: string) {
+    const post = await this.postRepository.findOne({ where: { id } });
+    if (!post) {
+      throw new NotFoundException('Post não encontrado');
+    }
+    post.curtidas = post.curtidas ? post.curtidas + 1 : 1;
+    return await this.postRepository.save(post);
+  }
+
+  async remove(id: string) {
     this.logger.log(`Removing post with id: ${id}`);
-    return this.postRepository.delete(id);
+    return await this.postRepository.delete(id);
   }
 }

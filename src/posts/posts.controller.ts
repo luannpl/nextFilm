@@ -30,6 +30,11 @@ export class PostsController {
     return this.postsService.findOnePost(id);
   }
 
+  @Patch(':id/curtidas')
+  updateCurtidas(@Param('id') id: string) {
+    return this.postsService.updateCurtidas(id);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.postsService.remove(id);
