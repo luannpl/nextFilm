@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 export class CreatePostDto {
   @IsNotEmpty({ message: 'O campo título é obrigatório' })
@@ -8,15 +9,12 @@ export class CreatePostDto {
   descricao: string;
 
   @IsNotEmpty({ message: 'O campo curtidas é obrigatório' })
-  @IsNumber({}, { message: 'O campo curtidas deve ser um número' })
+  @Type(() => Number)
   curtidas: number;
 
-  @IsOptional()
-  @IsString({ message: 'O campo imagem deve ser uma string' })
-  imagem?: string;
-
   @IsNotEmpty({ message: 'O campo avaliação é obrigatório' })
-  avaliacao: string;
+  @Type(() => Number)
+  avaliacao: number;
 
   @IsNotEmpty({ message: 'O campo filme_id é obrigatório' })
   filme_id: string;

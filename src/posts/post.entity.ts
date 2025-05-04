@@ -1,6 +1,7 @@
 import { Comment } from 'src/comments/comment.entity';
 import { User } from 'src/users/user.entity';
 import {
+  Check,
   Column,
   CreateDateColumn,
   Entity,
@@ -11,6 +12,7 @@ import {
 } from 'typeorm';
 
 @Entity({ name: 'posts' })
+@Check(`"avaliacao" BETWEEN 1 AND 5`)
 export class Post {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,10 +27,10 @@ export class Post {
   curtidas: number;
 
   @Column({ nullable: true })
-  imagem: string;
+  caminho_imagem: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: false })
-  avaliacao: string;
+  @Column({ type: 'int', nullable: false, default: 1 })
+  avaliacao: number;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
   filme_id: string;
