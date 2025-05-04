@@ -1,16 +1,54 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { UsersService } from 'src/users/users.service';
+import { SignInDto } from './dto/signIn.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-    private readonly logger = new Logger(AuthService.name);
+  private readonly logger = new Logger(AuthService.name);
+  constructor(
+    @Inject(forwardRef(() => UsersService))
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
 
-    async hashPassword(password: string): Promise<string> {
-        const salt = await bcrypt.genSalt(10);
-        return bcrypt.hash(password, salt);
+  async hashPassword(password: string): Promise<string> {
+    const salt = await bcrypt.genSalt(10);
+    return bcrypt.hash(password, salt);
+  }
+
+  async comparePassword(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
+  }
+
+  async signIn(body: SignInDto) {
+    const user = await this.usersService.getUserByEmail(body.email);
+    if (!user) {
+      this.logger.warn(`User with email ${body.email} not found`);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const isPasswordValid = await this.comparePassword(body.senha, user.senha);
+    if (!isPasswordValid) {
+      this.logger.warn(`Invalid password for user with email ${body.email}`);
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    async comparePassword(password: string, hash: string): Promise<boolean> {
-        return bcrypt.compare(password, hash);
-    }
+    const payload = { email: user.email, sub: user.id };
+    const token = this.jwtService.sign(payload);
+    this.logger.log(`User ${user.email} signed in successfully`);
+    return {
+      access_token: token,
+      user: {
+        ...user,
+        senha: undefined,
+      },
+    };
+  }
 }
