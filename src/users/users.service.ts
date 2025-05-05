@@ -27,12 +27,24 @@ export class UsersService {
     return this.userRepository.findOne({ where: { email } });
   }
 
+  async getUserByUsername(usuario: string) {
+    this.logger.log(`Getting user with username: ${usuario}`);
+    return this.userRepository.findOne({ where: { usuario } });
+  }
+
   async createUser(body: CreateUserDto) {
     this.logger.log('Creating user', body);
-    const existingUser = await this.getUserByEmail(body.email);
-    if (existingUser) {
+    const existingUserWithEmail = await this.getUserByEmail(body.email);
+    if (existingUserWithEmail) {
       this.logger.warn(`User with email ${body.email} already exists`);
-      throw new ConflictException('User already exists');
+      throw new ConflictException('Email já cadastrado');
+    }
+    const existingUserWithUsername = await this.getUserByUsername(
+      body.usuario,
+    );
+    if (existingUserWithUsername) {
+      this.logger.warn(`User with username ${body.usuario} already exists`);
+      throw new ConflictException('Nome de usuário já cadastrado');
     }
 
     const hashSenha = await this.authService.hashPassword(body.senha);
@@ -63,11 +75,11 @@ export class UsersService {
     };
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
+  // update(id: number, updateUserDto: UpdateUserDto) {
+  //   return `This action updates a #${id} user`;
+  // }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
-  }
+  // remove(id: number) {
+  //   return `This action removes a #${id} user`;
+  // }
 }
