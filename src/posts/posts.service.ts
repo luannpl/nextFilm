@@ -63,7 +63,38 @@ export class PostsService {
 
   async findAllPosts() {
     this.logger.log('Retrieving all posts');
-    return await this.postRepository.find();
+    const posts = await this.postRepository.find({
+      relations: ['user'],
+      select: {
+        user: {
+          id: true,
+          nome: true,
+          sobrenome: true,
+          email: false,
+          senha: false,
+        }
+      }
+    })
+    
+    // Mapeia os posts para adicionar a signedUrl se houver imagem
+    const postsWithSignedUrls = await Promise.all(
+      posts.map(async (post) => {
+        if (post.caminho_imagem) {
+          const { data, error } = await this.supabase
+            .storage
+            .from('nextfilms')
+            .createSignedUrl(post.caminho_imagem, 60 * 60); // 1 hora
+          this.logger.log('Signed URL gerada com sucesso');
+          delete post.caminho_imagem;
+          if (!error && data?.signedUrl) {
+            return { ...post, imageUrl: data.signedUrl };
+          }
+        }
+
+        return { ...post, imageUrl: null };
+      })
+    );
+    return postsWithSignedUrls;
   }
 
   async findOnePost(id: string) {
@@ -123,6 +154,7 @@ export class PostsService {
             .storage
             .from('nextfilms')
             .createSignedUrl(post.caminho_imagem, 60 * 60); // 1 hora
+          this.logger.log('Signed URL gerada com sucesso', data);
           delete post.caminho_imagem;
           if (!error && data?.signedUrl) {
             return { ...post, imageUrl: data.signedUrl };
