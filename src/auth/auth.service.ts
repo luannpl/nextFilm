@@ -52,6 +52,17 @@ export class AuthService {
       sameSite: 'strict',
     });
 
+    res.cookie('nextfilm_user', JSON.stringify({
+      id: user.id,
+      nome: user.nome,
+      sobrenome: user.sobrenome,
+      usuario: user.usuario
+    }), {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
     return { message: 'Login successful' }
   }
 }
