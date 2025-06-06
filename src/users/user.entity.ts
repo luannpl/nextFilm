@@ -1,5 +1,5 @@
 import { Comment } from 'src/comments/comment.entity';
-import { Post } from 'src/posts/post.entity';
+import { Review } from 'src/reviews/review.entity';
 import {
   Column,
   CreateDateColumn,
@@ -30,8 +30,8 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: false })
   senha: string;
 
-  @OneToMany(() => Post, (post) => post.user, { cascade: true })
-  posts: Post[];
+  @OneToMany(() => Review, (Review) => Review.user, { cascade: true })
+  reviews: Review[];
 
   @OneToMany(() => Comment, (comment) => comment.user)
   comments: Comment[];

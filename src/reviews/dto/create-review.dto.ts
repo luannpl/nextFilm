@@ -1,16 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
 
-export class CreatePostDto {
+export class CreateReviewDto {
   @IsNotEmpty({ message: 'O campo título é obrigatório' })
   titulo: string;
 
   @IsNotEmpty({ message: 'O campo descrição é obrigatório' })
   descricao: string;
-
-  @IsNotEmpty({ message: 'O campo curtidas é obrigatório' })
-  @Type(() => Number)
-  curtidas: number;
 
   @IsNotEmpty({ message: 'O campo avaliação é obrigatório' })
   @Type(() => Number)

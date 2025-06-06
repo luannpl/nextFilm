@@ -1,4 +1,4 @@
-import { Post } from 'src/posts/post.entity';
+// import { Post } from 'src/reviews/review.entity';
 import { User } from 'src/users/user.entity';
 import {
   Column,
@@ -17,8 +17,8 @@ export class Comment {
   @Column({ type: 'text', nullable: false })
   descricao: string;
 
-  @ManyToOne(() => Post, (post) => post.comments, { onDelete: 'CASCADE' })
-  post: Post;
+  // @ManyToOne(() => Post, (post) => post.comments, { onDelete: 'CASCADE' })
+  // post: Post;
 
   @ManyToOne(() => User, (user) => user.comments, { onDelete: 'CASCADE' })
   user: User;
