@@ -8,32 +8,24 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
+  UseGuards,
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { User } from 'src/decorators/user.decorator';
+import { TokenPayload } from 'src/auth/auth';
 
 @Controller('reviews')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
-  @UseInterceptors(
-    FileInterceptor('image', {
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-      fileFilter: (req, file, cb) => {
-        if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
-          return cb(new Error('Formato de imagem inválido'), false);
-        }
-        cb(null, true);
-      },
-    }),
-  )
-  create(
-    @Body() createReviewDto: CreateReviewDto,
-    @UploadedFile() image?: Express.Multer.File,
-  ) {
-    return this.reviewsService.createPost(createReviewDto, image);
+  create(@Body() createReviewDto: CreateReviewDto, @User() user: TokenPayload) {
+    const { sub } = user;
+    return this.reviewsService.createReview(createReviewDto, sub);
   }
 
   @Get()

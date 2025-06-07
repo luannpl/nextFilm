@@ -57,6 +57,17 @@ export class PostsController {
     return await this.postsService.toggleLike(id, userId);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/comment')
+  async addComment(
+    @Param('id') id: number,
+    @Body('content') content: string,
+    @User() user: TokenPayload,
+  ) {
+    const { sub } = user;
+    return await this.postsService.addComment(id, content, sub);
+  }
+
   @Get()
   async getPosts(
     @Query('page') page: string = '1',
@@ -80,6 +91,11 @@ export class PostsController {
   @Get(':id')
   async getPostById(@Param('id') id: string) {
     return await this.postsService.getPostById(+id);
+  }
+
+  @Get(':id/comments')
+  async getCommentsByPostId(@Param('id') id: number) {
+    return await this.postsService.getCommentsByPostId(id);
   }
 
   @HttpCode(204)

@@ -7,12 +7,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Post } from './post.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { User } from 'src/users/user.entity';
 import { CreatePostDto } from './dto/create-post-dto';
 import * as mime from 'mime-types';
 import { v4 as uuidv4 } from 'uuid';
 import { Like } from 'src/likes/like.entity';
+import { Comment } from 'src/comments/comment.entity';
 
 @Injectable()
 export class PostsService {
@@ -28,6 +29,9 @@ export class PostsService {
 
     @InjectRepository(Like)
     private readonly likeRepository: Repository<Like>,
+
+    @InjectRepository(Comment)
+    private readonly commentRepository: Repository<Comment>,
   ) {
     this.supabase = createClient(
       process.env.SUPABASE_URL,
@@ -53,7 +57,7 @@ export class PostsService {
       this.logger.log(`Image received, processing upload...`);
       const extension = mime.extension(image.mimetype);
       const pathName = `/posts/${uuidv4()}.${extension}`;
-      
+
       const { error } = await this.supabase.storage
         .from('nextfilms')
         .upload(pathName, image.buffer, {
@@ -84,8 +88,8 @@ export class PostsService {
     const post = await this.postRepository.save(newPost);
 
     this.logger.log(`Post created successfully.`);
-  
-  return post;
+
+    return post;
   }
 
   async toggleLike(postId: number, userId: string) {
@@ -129,6 +133,32 @@ export class PostsService {
     await this.postRepository.save(post);
     this.logger.log(`Added like to post ID ${postId}`);
     return { liked: true, likesCount: post.likesCount };
+  }
+
+  async addComment(postId: number, content: string, userId: string) {
+    this.logger.log(`Adding comment to post ID ${postId}...`);
+
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: ['comments'],
+    });
+
+    if (!post) {
+      throw new BadRequestException('Post not found');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const comment = this.commentRepository.create({
+      descricao: content,
+      post,
+      user,
+    });
+    const savedComment = await this.commentRepository.save(comment);
+    return savedComment;
   }
 
   async getPosts(page = 1, limit = 10, orderBy = 'createdAt') {
@@ -189,7 +219,7 @@ export class PostsService {
 
     const [posts, totalCount] = await this.postRepository.findAndCount({
       where: { user: { id: userId } },
-      relations: ['comments'],
+      relations: ['comments', 'user'],
       skip,
       take: limit,
       order: { createdAt: 'DESC' },
@@ -219,6 +249,28 @@ export class PostsService {
       page,
       limit,
     };
+  }
+
+  async getCommentsByPostId(postId: number) {
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: ['comments', 'comments.user'],
+    });
+
+    if (!post) {
+      throw new BadRequestException('Post not found');
+    }
+
+    // Remover o campo senha manualmente
+    const commentsWithoutPassword = post.comments.map((comment) => {
+      const { senha, email, ...safeUser } = comment.user || {};
+      return {
+        ...comment,
+        user: safeUser,
+      };
+    });
+
+    return commentsWithoutPassword;
   }
 
   async deletePost(id: number) {

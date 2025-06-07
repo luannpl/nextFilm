@@ -30,45 +30,14 @@ export class ReviewsService {
     );
   }
 
-  async createPost(
-    createReviewPost: CreateReviewDto,
-    image: Express.Multer.File,
-  ) {
-    let caminho_imagem = null;
-    if (image) {
-      this.logger.log('Imagem recebida, processando upload...');
-      const extension = mime.extension(image.mimetype);
-      const path_name = `posts/${uuidv4()}.${extension}`;
-      this.logger.log(`Gerado caminho para imagem: ${path_name}`);
-
-      const { error } = await this.supabase.storage
-        .from('nextfilms')
-        .upload(path_name, image.buffer, {
-          contentType: image.mimetype,
-          upsert: false,
-        });
-
-      if (error) {
-        this.logger.error('Erro ao fazer upload da imagem', error);
-        throw new InternalServerErrorException(
-          'Erro ao fazer upload da imagem',
-        );
-      }
-
-      this.logger.log('Upload da imagem concluído com sucesso');
-      caminho_imagem = path_name;
-    } else {
-      this.logger.log('Nenhuma imagem foi enviada');
-    }
-
-    this.logger.log('Salvando review no banco de dados...');
+  async createReview(createReviewPost: CreateReviewDto, userId: string) {
+    this.logger.log('userId', userId);
+    this.logger.log('Creating review', createReviewPost);
     const review = await this.reviewRepository.save({
       ...createReviewPost,
-      caminho_imagem,
-      user: { id: createReviewPost.user_id },
+      user: { id: userId },
     });
 
-    this.logger.log('Review criado com sucesso', review);
     return review;
   }
 
