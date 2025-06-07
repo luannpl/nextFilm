@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -21,6 +22,16 @@ export class UsersService {
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
   ) {}
+
+  async getUserById(id: string) {
+    this.logger.log(`Getting user with id: ${id}`);
+    const user = await this.userRepository.findOne({ where: { id }, select: ['id', 'nome', 'sobrenome', 'usuario', 'email'] });
+    if (!user) {
+      this.logger.warn(`User with id ${id} not found`);
+      throw new NotFoundException(`Usuário com id ${id} não encontrado`);
+    }
+    return user;
+  }
 
   async getUserByEmail(email: string) {
     this.logger.log(`Getting user with email: ${email}`);

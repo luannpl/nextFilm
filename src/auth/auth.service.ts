@@ -9,7 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { UsersService } from 'src/users/users.service';
 import { SignInDto } from './dto/signIn.dto';
 import { JwtService } from '@nestjs/jwt';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -52,17 +52,31 @@ export class AuthService {
       sameSite: 'strict',
     });
 
-    res.cookie('nextfilm_user', JSON.stringify({
-      id: user.id,
-      nome: user.nome,
-      sobrenome: user.sobrenome,
-      usuario: user.usuario
-    }), {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    });
-
     return { message: 'Login successful' }
+  }
+
+  async getSession(req: Request) {
+    const token = req.cookies['nextfilm_user'];
+    if (!token) {
+      this.logger.warn('No session token found');
+      return undefined
+    }
+
+    try {
+      const decoded = this.jwtService.verify(token);
+      const user = await this.usersService.getUserById(decoded.id);
+      return {
+        user: {
+          id: user.id,
+          nome: user.nome,
+          sobrenome: user.sobrenome,
+          usuario: user.usuario,
+          email: user.email,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Error verifying session token', error);
+      return undefined;
+    }
   }
 }

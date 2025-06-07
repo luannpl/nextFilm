@@ -35,13 +35,13 @@ export class PostsService {
     );
   }
 
-  async createPost(postData: CreatePostDto, image?: Express.Multer.File) {
+  async createPost(postData: CreatePostDto, userId: string, image?: Express.Multer.File) {
     this.logger.log(`Creating new post...`);
 
-    const { content, authorId } = postData;
+    const { content } = postData;
 
     const user = await this.userRepository.findOne({
-      where: { id: authorId },
+      where: { id: userId },
     });
 
     let imagePath = null;
@@ -134,7 +134,7 @@ export class PostsService {
       skip,
       take,
       order: { [orderBy]: order },
-      relations: ['user', 'likes'],
+      relations: ['user'],
     });
 
     // Mapeia os posts para adicionar a signedUrl se houver imagem

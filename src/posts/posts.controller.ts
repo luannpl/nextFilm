@@ -9,16 +9,21 @@ import {
   Post,
   Query,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post-dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { User } from 'src/decorators/user.decorator';
+import { TokenPayload } from 'src/auth/auth';
 
 @Controller('posts')
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(
     FileInterceptor('image', {
@@ -41,9 +46,13 @@ export class PostsController {
   )
   async createPost(
     @Body() postData: CreatePostDto,
+    @User() user: TokenPayload,
     @UploadedFile() image?: Express.Multer.File,
   ) {
-    return await this.postsService.createPost(postData, image);
+    const { sub } = user;
+    const { id } = sub;
+    console.log(id)
+    return await this.postsService.createPost(postData, id, image);
   }
 
   @Post(':id/like')
