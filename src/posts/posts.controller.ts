@@ -68,18 +68,20 @@ export class PostsController {
     return await this.postsService.getPosts(+page, +limit, orderBy);
   }
 
-  @Get(':id')
-  async getPostById(@Param('id') id: string) {
-    return await this.postsService.getPostById(+id);
-  }
-
-  @Get('user/:userId')
-  async getPostsByUserId(
-    @Param('userId', ParseUUIDPipe) userId: string,
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getPostsByLoggedUser(
+    @User() user: TokenPayload,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
+    const userId = user.sub.id;
     return await this.postsService.getPostsByUserId(userId, +page, +limit);
+  }
+
+  @Get(':id')
+  async getPostById(@Param('id') id: string) {
+    return await this.postsService.getPostById(+id);
   }
 
   @HttpCode(204)
