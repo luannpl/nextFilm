@@ -35,7 +35,11 @@ export class PostsService {
     );
   }
 
-  async createPost(postData: CreatePostDto, userId: string, image?: Express.Multer.File) {
+  async createPost(
+    postData: CreatePostDto,
+    userId: string,
+    image?: Express.Multer.File,
+  ) {
     this.logger.log(`Creating new post...`);
 
     const { content } = postData;
@@ -85,8 +89,10 @@ export class PostsService {
     return post;
   }
 
-  async toogleLike(postId: number, userId: string) {
-    this.logger.log(`Liking post with ID ${postId} by user ${userId}...`);
+  async toggleLike(postId: number, userId: string) {
+    this.logger.log(
+      `Toggling like for post with ID ${postId} by user ${userId}...`,
+    );
 
     const post = await this.postRepository.findOne({ where: { id: postId } });
     if (!post) {
@@ -134,7 +140,7 @@ export class PostsService {
       skip,
       take,
       order: { [orderBy]: order },
-      relations: ['user'],
+      relations: ['user', 'comments'],
     });
 
     // Mapeia os posts para adicionar a signedUrl se houver imagem
@@ -169,7 +175,7 @@ export class PostsService {
   async getPostById(id: number) {
     const post = await this.postRepository.findOne({
       where: { id },
-      relations: ['comments', 'comments.user'],
+      relations: ['comments'],
     });
 
     if (!post) {
@@ -185,7 +191,7 @@ export class PostsService {
 
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['posts'],
+      relations: ['posts', 'posts.comments'],
     });
 
     if (!user) {

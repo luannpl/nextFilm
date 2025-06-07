@@ -51,12 +51,12 @@ export class PostsController {
   ) {
     const { sub } = user;
     const { id } = sub;
-    console.log(id)
+    console.log(id);
     return await this.postsService.createPost(postData, id, image);
   }
 
   @Post(':id/like')
-  async likePost(@Param('id') id: number, @Body('userId') userId: string) {
+  async toggleLike(@Param('id') id: number, @Body('userId') userId: string) {
     return await this.postsService.toggleLike(id, userId);
   }
 
