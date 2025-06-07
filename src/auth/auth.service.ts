@@ -10,6 +10,7 @@ import { UsersService } from 'src/users/users.service';
 import { SignInDto } from './dto/signIn.dto';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
+import { TokenPayload } from './auth';
 
 @Injectable()
 export class AuthService {
@@ -57,14 +58,15 @@ export class AuthService {
 
   async getSession(req: Request) {
     const token = req.cookies['nextfilm_access_token'];
+
     if (!token) {
       this.logger.warn('No session token found');
       return undefined
     }
 
     try {
-      const decoded = this.jwtService.verify(token);
-      const user = await this.usersService.getUserById(decoded.sub.id);
+      const decoded = this.jwtService.verify(token) as TokenPayload;
+      const user = await this.usersService.getUserById(decoded.sub);
       return {
         user: {
           id: user.id,
@@ -82,5 +84,15 @@ export class AuthService {
       this.logger.error('Error verifying session token', error);
       return undefined;
     }
+  }
+
+  async signOut(req: Request, res: Response) {
+    res.clearCookie('nextfilm_access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+    this.logger.log('User signed out successfully');
+    return { message: 'Logout successful' };
   }
 }

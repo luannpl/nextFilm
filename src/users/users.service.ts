@@ -128,7 +128,9 @@ export class UsersService {
 
   async updateProfile(id: string, updateUserDto: UpdateUserDto, avatar?: Express.Multer.File) {
     this.logger.log(`Updating user profile with id: ${id}`, updateUserDto);
-    const user = await this.getUserById(id);
+    const user = await this.userRepository.findOne({
+      where: { id },
+    });
 
     if (updateUserDto.email) {
       const existingUserWithEmail = await this.getUserByEmail(updateUserDto.email);

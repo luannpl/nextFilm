@@ -23,4 +23,9 @@ export class AuthController {
   signIn(@Body() signInDto: SignInDto, @Res({ passthrough: true }) res: Response) {
     return this.authService.signIn(signInDto, res);
   }
+
+  @Post('signout')
+  signOut(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.authService.signOut(req, res);
+  }
 }

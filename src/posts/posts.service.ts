@@ -161,32 +161,71 @@ export class PostsService {
     return savedComment;
   }
 
-  async getPosts(page = 1, limit = 10, orderBy = 'createdAt') {
+  async getPosts(page = 1, limit = 10, orderBy = 'createdAt', userId?: string) {
     const skip = (page - 1) * limit;
     const take = limit;
     const order = orderBy === 'createdAt' ? 'DESC' : 'ASC';
+
     const [posts, total] = await this.postRepository.findAndCount({
       skip,
       take,
       order: { [orderBy]: order },
-      relations: ['user', 'comments'],
+      relations: ['user', 'comments', 'likes.user'],
     });
 
-    // Mapeia os posts para adicionar a signedUrl se houver imagem
     const postsWithSignedUrls = await Promise.all(
       posts.map(async (post) => {
-        if (post.imagePath) {
-          const { data, error } = await this.supabase.storage
-            .from('nextfilms')
-            .createSignedUrl(post.imagePath, 60 * 60); // 1 hora
-          this.logger.log('Signed URL gerada com sucesso');
-          delete post.imagePath;
-          if (!error && data?.signedUrl) {
-            return { ...post, imageUrl: data.signedUrl };
-          }
+        const postImageUrlPromise = post.imagePath
+          ? this.supabase.storage
+              .from('nextfilms')
+              .createSignedUrl(post.imagePath, 3600)
+          : Promise.resolve({ data: { signedUrl: null }, error: null });
+
+        const userAvatarUrlPromise =
+          post.user && post.user.avatar
+            ? this.supabase.storage
+                .from('nextfilms')
+                .createSignedUrl(post.user.avatar, 3600)
+            : Promise.resolve({ data: { signedUrl: null }, error: null });
+
+        const [postImageResult, userAvatarResult] = await Promise.all([
+          postImageUrlPromise,
+          userAvatarUrlPromise,
+        ]);
+
+        if (postImageResult.error) {
+          this.logger.error(
+            `Error generating signed URL for post image ${post.imagePath}: ${postImageResult.error.message}`,
+          );
         }
+        if (userAvatarResult.error) {
+          this.logger.error(
+            `Error generating signed URL for user avatar ${post.user?.avatar}: ${userAvatarResult.error.message}`,
+          );
+        }
+
+        const isLiked = userId
+          ? post.likes.some((like) => like.user?.id === userId)
+          : false;
+
+        const userPayload = {
+          id: post.user.id,
+          nome: post.user.nome,
+          sobrenome: post.user.sobrenome,
+          usuario: post.user.usuario,
+          avatar: userAvatarResult.data?.signedUrl || null,
+        };
+
         delete post.imagePath;
-        return { ...post, imageUrl: null };
+        delete post.user;
+        delete post.likes; // Remove o array de likes para não poluir a resposta da API
+
+        return {
+          ...post,
+          imageUrl: postImageResult.data?.signedUrl || null,
+          user: userPayload,
+          isLiked, // Adiciona o novo campo
+        };
       }),
     );
 
