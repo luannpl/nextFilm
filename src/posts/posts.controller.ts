@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   Param,
-  ParseUUIDPipe,
   Post,
   Query,
   UploadedFile,
@@ -50,8 +49,7 @@ export class PostsController {
     @UploadedFile() image?: Express.Multer.File,
   ) {
     const { sub } = user;
-    const { id } = sub;
-    return await this.postsService.createPost(postData, id, image);
+    return await this.postsService.createPost(postData, sub, image);
   }
 
   @Post(':id/like')
@@ -75,7 +73,7 @@ export class PostsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
-    const userId = user.sub.id;
+    const userId = user.sub;
     return await this.postsService.getPostsByUserId(userId, +page, +limit);
   }
 

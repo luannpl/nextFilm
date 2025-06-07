@@ -49,14 +49,14 @@ export class AuthService {
     res.cookie('nextfilm_access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
     });
 
     return { message: 'Login successful' }
   }
 
   async getSession(req: Request) {
-    const token = req.cookies['nextfilm_user'];
+    const token = req.cookies['nextfilm_access_token'];
     if (!token) {
       this.logger.warn('No session token found');
       return undefined
@@ -64,7 +64,7 @@ export class AuthService {
 
     try {
       const decoded = this.jwtService.verify(token);
-      const user = await this.usersService.getUserById(decoded.id);
+      const user = await this.usersService.getUserById(decoded.sub.id);
       return {
         user: {
           id: user.id,
@@ -72,6 +72,10 @@ export class AuthService {
           sobrenome: user.sobrenome,
           usuario: user.usuario,
           email: user.email,
+          avatar: user.avatar,
+          bio: user.bio,
+          cidade: user.cidade,
+          createdAt: user.createdAt,
         },
       };
     } catch (error) {

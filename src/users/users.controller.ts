@@ -6,11 +6,19 @@ import {
   Patch,
   Param,
   Delete,
+  Put,
+  UseInterceptors,
+  UseGuards,
+  UploadedFile,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ReviewsService } from 'src/reviews/reviews.service';
+import { User } from 'src/decorators/user.decorator';
+import { TokenPayload } from 'src/auth/auth';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
@@ -37,6 +45,32 @@ export class UsersController {
   @Get(':userId/posts')
   findPostsByUser(@Param('userId') userId: string) {
     return this.reviewsService.findByUser(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5 MB
+      },
+      fileFilter: (
+        _: any,
+        file: { mimetype: string },
+        cb: (arg0: Error, arg1: boolean) => void,
+      ) => {
+        const allowedMimeTypes = ['image/jpg', 'image/jpeg', 'image/png'];
+        if (allowedMimeTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type'), false);
+        }
+      },
+    }),
+  )
+  updateProfile(@User() user: TokenPayload, @Body() updateUserDto: UpdateUserDto, @UploadedFile() avatar?: Express.Multer.File) {
+    const { sub } = user
+    return this.usersService.updateProfile(sub, updateUserDto, avatar);
   }
 
   // @Patch(':id')

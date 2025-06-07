@@ -32,6 +32,15 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: false })
   senha: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  avatar: string;
+
+  @Column({ type: 'text', nullable: true })
+  bio: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  cidade: string;
+
   @OneToMany(() => Post, (post) => post.user)
   posts: Post[];
 
