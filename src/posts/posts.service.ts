@@ -187,26 +187,21 @@ export class PostsService {
 
   async getPostsByUserId(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-    const take = limit;
 
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-      relations: ['posts', 'posts.comments'],
+    const [posts, totalCount] = await this.postRepository.findAndCount({
+      where: { user: { id: userId } },
+      relations: ['comments'],
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
     });
 
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-
-    const posts = user.posts.slice(skip, skip + take);
-
-    // Mapeia os posts para adicionar a signedUrl se houver imagem
     const postsWithSignedUrls = await Promise.all(
       posts.map(async (post) => {
         if (post.imagePath) {
           const { data, error } = await this.supabase.storage
             .from('nextfilms')
-            .createSignedUrl(post.imagePath, 60 * 60); // 1 hora
+            .createSignedUrl(post.imagePath, 60 * 60);
           this.logger.log('Signed URL gerada com sucesso');
           delete post.imagePath;
           if (!error && data?.signedUrl) {
@@ -220,8 +215,8 @@ export class PostsService {
 
     return {
       posts: postsWithSignedUrls,
-      hasNextPage: user.posts.length > skip + take,
-      totalPages: Math.ceil(user.posts.length / limit),
+      hasNextPage: totalCount > skip + limit,
+      totalPages: Math.ceil(totalCount / limit),
       page,
       limit,
     };
