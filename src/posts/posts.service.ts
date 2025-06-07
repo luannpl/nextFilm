@@ -53,7 +53,7 @@ export class PostsService {
       this.logger.log(`Image received, processing upload...`);
       const extension = mime.extension(image.mimetype);
       const pathName = `/posts/${uuidv4()}.${extension}`;
-      
+
       const { error } = await this.supabase.storage
         .from('nextfilms')
         .upload(pathName, image.buffer, {
@@ -84,8 +84,8 @@ export class PostsService {
     const post = await this.postRepository.save(newPost);
 
     this.logger.log(`Post created successfully.`);
-  
-  return post;
+
+    return post;
   }
 
   async toggleLike(postId: number, userId: string) {
@@ -131,35 +131,66 @@ export class PostsService {
     return { liked: true, likesCount: post.likesCount };
   }
 
-  async getPosts(page = 1, limit = 10, orderBy = 'createdAt') {
+  async getPosts(page = 1, limit = 10, orderBy = 'createdAt', userId?: string) { 
     const skip = (page - 1) * limit;
     const take = limit;
     const order = orderBy === 'createdAt' ? 'DESC' : 'ASC';
+
     const [posts, total] = await this.postRepository.findAndCount({
       skip,
       take,
       order: { [orderBy]: order },
-      relations: ['user', 'comments'],
+      relations: ['user', 'comments', 'likes.user'], 
     });
 
-    // Mapeia os posts para adicionar a signedUrl se houver imagem
     const postsWithSignedUrls = await Promise.all(
       posts.map(async (post) => {
-        if (post.imagePath) {
-          const { data, error } = await this.supabase.storage
-            .from('nextfilms')
-            .createSignedUrl(post.imagePath, 60 * 60); // 1 hora
-          this.logger.log('Signed URL gerada com sucesso');
-          delete post.imagePath;
-          if (!error && data?.signedUrl) {
-            return { ...post, imageUrl: data.signedUrl };
-          }
+        const postImageUrlPromise = post.imagePath
+          ? this.supabase.storage.from('nextfilms').createSignedUrl(post.imagePath, 3600)
+          : Promise.resolve({ data: { signedUrl: null }, error: null });
+
+        const userAvatarUrlPromise = post.user && post.user.avatar
+          ? this.supabase.storage.from('nextfilms').createSignedUrl(post.user.avatar, 3600)
+          : Promise.resolve({ data: { signedUrl: null }, error: null });
+
+        const [postImageResult, userAvatarResult] = await Promise.all([
+          postImageUrlPromise,
+          userAvatarUrlPromise,
+        ]);
+
+        if (postImageResult.error) {
+          this.logger.error(`Error generating signed URL for post image ${post.imagePath}: ${postImageResult.error.message}`);
         }
+        if (userAvatarResult.error) {
+          this.logger.error(`Error generating signed URL for user avatar ${post.user?.avatar}: ${userAvatarResult.error.message}`);
+        }
+
+
+        const isLiked = userId 
+          ? post.likes.some(like => like.user?.id === userId) 
+          : false;
+
+        const userPayload = {
+          id: post.user.id,
+          nome: post.user.nome,
+          sobrenome: post.user.sobrenome,
+          usuario: post.user.usuario,
+          avatar: userAvatarResult.data?.signedUrl || null, 
+        };
+
         delete post.imagePath;
-        return { ...post, imageUrl: null };
+        delete post.user;
+        delete post.likes; // Remove o array de likes para não poluir a resposta da API
+
+        return {
+          ...post,
+          imageUrl: postImageResult.data?.signedUrl || null,
+          user: userPayload,
+          isLiked, // Adiciona o novo campo
+        };
       }),
     );
-
+    
     const totalPages = Math.ceil(total / limit);
 
     return {
@@ -172,74 +203,74 @@ export class PostsService {
   }
 
   async getPostById(id: number) {
-    const post = await this.postRepository.findOne({
-      where: { id },
-      relations: ['comments'],
-    });
+  const post = await this.postRepository.findOne({
+    where: { id },
+    relations: ['comments'],
+  });
 
-    if (!post) {
-      throw new BadRequestException('Post not found');
-    }
-
-    return post;
+  if (!post) {
+    throw new BadRequestException('Post not found');
   }
+
+  return post;
+}
 
   async getPostsByUserId(userId: string, page = 1, limit = 10) {
-    const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit;
 
-    const [posts, totalCount] = await this.postRepository.findAndCount({
-      where: { user: { id: userId } },
-      relations: ['comments'],
-      skip,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+  const [posts, totalCount] = await this.postRepository.findAndCount({
+    where: { user: { id: userId } },
+    relations: ['comments'],
+    skip,
+    take: limit,
+    order: { createdAt: 'DESC' },
+  });
 
-    const postsWithSignedUrls = await Promise.all(
-      posts.map(async (post) => {
-        if (post.imagePath) {
-          const { data, error } = await this.supabase.storage
-            .from('nextfilms')
-            .createSignedUrl(post.imagePath, 60 * 60);
-          this.logger.log('Signed URL gerada com sucesso');
-          delete post.imagePath;
-          if (!error && data?.signedUrl) {
-            return { ...post, imageUrl: data.signedUrl };
-          }
-        }
+  const postsWithSignedUrls = await Promise.all(
+    posts.map(async (post) => {
+      if (post.imagePath) {
+        const { data, error } = await this.supabase.storage
+          .from('nextfilms')
+          .createSignedUrl(post.imagePath, 60 * 60);
+        this.logger.log('Signed URL gerada com sucesso');
         delete post.imagePath;
-        return { ...post, imageUrl: null };
-      }),
-    );
+        if (!error && data?.signedUrl) {
+          return { ...post, imageUrl: data.signedUrl };
+        }
+      }
+      delete post.imagePath;
+      return { ...post, imageUrl: null };
+    }),
+  );
 
-    return {
-      posts: postsWithSignedUrls,
-      hasNextPage: totalCount > skip + limit,
-      totalPages: Math.ceil(totalCount / limit),
-      page,
-      limit,
-    };
-  }
+  return {
+    posts: postsWithSignedUrls,
+    hasNextPage: totalCount > skip + limit,
+    totalPages: Math.ceil(totalCount / limit),
+    page,
+    limit,
+  };
+}
 
   async deletePost(id: number) {
-    const post = await this.postRepository.findOne({ where: { id } });
+  const post = await this.postRepository.findOne({ where: { id } });
 
-    if (!post) {
-      throw new BadRequestException('Post not found');
-    }
-
-    if (post.imagePath) {
-      const { error } = await this.supabase.storage
-        .from('nextfilms')
-        .remove([post.imagePath]);
-
-      if (error) {
-        this.logger.error(`Error removing image: ${error.message}`);
-        throw new InternalServerErrorException('Error removing image');
-      }
-    }
-
-    await this.postRepository.delete(id);
-    this.logger.log(`Post with ID ${id} deleted successfully.`);
+  if (!post) {
+    throw new BadRequestException('Post not found');
   }
+
+  if (post.imagePath) {
+    const { error } = await this.supabase.storage
+      .from('nextfilms')
+      .remove([post.imagePath]);
+
+    if (error) {
+      this.logger.error(`Error removing image: ${error.message}`);
+      throw new InternalServerErrorException('Error removing image');
+    }
+  }
+
+  await this.postRepository.delete(id);
+  this.logger.log(`Post with ID ${id} deleted successfully.`);
+}
 }

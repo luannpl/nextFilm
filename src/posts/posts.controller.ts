@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { User } from 'src/decorators/user.decorator';
 import { TokenPayload } from 'src/auth/auth';
+import { JwtOptionalAuthGuard } from 'src/guards/jwt-optional-auth.guard';
 
 @Controller('posts')
 export class PostsController {
@@ -52,18 +53,26 @@ export class PostsController {
     return await this.postsService.createPost(postData, sub, image);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/like')
-  async toggleLike(@Param('id') id: number, @Body('userId') userId: string) {
+  async toggleLike(@Param('id') id: number, @User() user: TokenPayload) {
+    const { sub: userId } = user;
     return await this.postsService.toggleLike(id, userId);
   }
 
   @Get()
+  @UseGuards(JwtOptionalAuthGuard)
   async getPosts(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('orderBy') orderBy: string = 'createdAt',
+    @User() user: TokenPayload | null,
   ) {
-    return await this.postsService.getPosts(+page, +limit, orderBy);
+    let userId = undefined;
+    if (user) {
+      userId = user.sub;
+    }
+    return await this.postsService.getPosts(+page, +limit, orderBy, userId);
   }
 
   @Get('me')
