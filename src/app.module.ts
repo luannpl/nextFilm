@@ -9,7 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSourceOptions } from './data-source';
 import { ConfigModule } from '@nestjs/config';
 import { PostsModule } from './posts/posts.module';
-
+import { LikesModule } from './likes/likes.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -19,6 +19,7 @@ import { PostsModule } from './posts/posts.module';
     CommentsModule,
     PostsModule,
     AuthModule,
+    LikesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

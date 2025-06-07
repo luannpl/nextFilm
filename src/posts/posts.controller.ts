@@ -46,6 +46,11 @@ export class PostsController {
     return await this.postsService.createPost(postData, image);
   }
 
+  @Post(':id/like')
+  async likePost(@Param('id') id: number, @Body('userId') userId: string) {
+    return await this.postsService.toggleLike(id, userId);
+  }
+
   @Get()
   async getPosts(
     @Query('page') page: string = '1',
@@ -56,8 +61,8 @@ export class PostsController {
   }
 
   @Get(':id')
-  async getPostById(@Param('id') id: number) {
-    return await this.postsService.getPostById(id);
+  async getPostById(@Param('id') id: string) {
+    return await this.postsService.getPostById(+id);
   }
 
   @Get('user/:userId')

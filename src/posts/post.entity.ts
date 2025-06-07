@@ -1,4 +1,5 @@
 import { Comment } from 'src/comments/comment.entity';
+import { Like } from 'src/likes/like.entity';
 import { User } from 'src/users/user.entity';
 import {
   Column,
@@ -34,6 +35,11 @@ export class Post {
     cascade: true,
   })
   comments: Comment[];
+
+  @OneToMany(() => Like, (like) => like.post, {
+    cascade: true,
+  })
+  likes: Like[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
