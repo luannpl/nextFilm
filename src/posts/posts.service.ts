@@ -41,7 +41,6 @@ export class PostsService {
     image?: Express.Multer.File,
   ) {
     this.logger.log(`Creating new post...`);
-
     const { content } = postData;
 
     const user = await this.userRepository.findOne({
@@ -54,7 +53,7 @@ export class PostsService {
       this.logger.log(`Image received, processing upload...`);
       const extension = mime.extension(image.mimetype);
       const pathName = `/posts/${uuidv4()}.${extension}`;
-
+      
       const { error } = await this.supabase.storage
         .from('nextfilms')
         .upload(pathName, image.buffer, {
@@ -85,8 +84,8 @@ export class PostsService {
     const post = await this.postRepository.save(newPost);
 
     this.logger.log(`Post created successfully.`);
-
-    return post;
+  
+  return post;
   }
 
   async toggleLike(postId: number, userId: string) {

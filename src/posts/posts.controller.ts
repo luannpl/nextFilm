@@ -51,7 +51,6 @@ export class PostsController {
   ) {
     const { sub } = user;
     const { id } = sub;
-    console.log(id);
     return await this.postsService.createPost(postData, id, image);
   }
 
