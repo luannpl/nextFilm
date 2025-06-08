@@ -3,16 +3,12 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
-  UseInterceptors,
-  UploadedFile,
   UseGuards,
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { User } from 'src/decorators/user.decorator';
 import { TokenPayload } from 'src/auth/auth';
@@ -41,6 +37,11 @@ export class ReviewsController {
   @Get('movies/:id')
   findByMovie(@Param('id') id: string) {
     return this.reviewsService.findByMovie(id);
+  }
+
+  @Get('movies/:id/rating')
+  findRatingByMovie(@Param('id') id: string) {
+    return this.reviewsService.findRatingByMovie(id);
   }
 
   @Delete(':id')

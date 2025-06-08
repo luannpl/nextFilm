@@ -122,6 +122,9 @@ export class ReviewsService {
           sobrenome: true,
         },
       },
+      order: {
+        createdAt: 'DESC',
+      }
     });
 
     // Mapeia os reviews para adicionar a signedUrl se houver imagem
@@ -143,6 +146,32 @@ export class ReviewsService {
     );
 
     return reviewsWithSignedUrls;
+  }
+
+  async findRatingByMovie(movieId: string) {
+    this.logger.log(`Retrieving reviews for movie with id: ${movieId}`);
+    const reviews = await this.reviewRepository.find({
+      where: { filme_id: movieId },
+      select: {
+        avaliacao: true,
+      },
+    });
+
+    if (reviews.length === 0) {
+      this.logger.warn(`No reviews found for movie with id: ${movieId}`);
+      return {
+        averageRating: 0,
+        totalReviews: 0,
+      }
+    }
+
+    const totalRating = reviews.reduce((sum, review) => sum + review.avaliacao, 0);
+    const averageRating = totalRating / reviews.length;
+
+    return {
+      averageRating,
+      totalReviews: reviews.length,
+    };
   }
 
   async remove(id: string) {
