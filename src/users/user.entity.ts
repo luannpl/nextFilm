@@ -1,4 +1,5 @@
 import { Comment } from 'src/comments/comment.entity';
+import { Follow } from 'src/follow/entities/follow.entity';
 import { Like } from 'src/likes/like.entity';
 import { Post } from 'src/posts/post.entity';
 import { Review } from 'src/reviews/review.entity';
@@ -54,6 +55,13 @@ export class User {
     cascade: true,
   })
   likes: Like[];
+
+  @OneToMany(() => Follow, (follow) => follow.follower)
+  following: Follow[];
+
+  // Relação: Registros de "Follow" onde este usuário é o SEGUIDO.
+  @OneToMany(() => Follow, (follow) => follow.following)
+  followers: Follow[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

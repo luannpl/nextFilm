@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   forwardRef,
   Inject,
@@ -16,6 +17,7 @@ import { AuthService } from 'src/auth/auth.service';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as mime from 'mime-types';
 import { v4 as uuidv4 } from 'uuid';
+import { Follow } from 'src/follow/entities/follow.entity';
 
 @Injectable()
 export class UsersService {
@@ -24,8 +26,12 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
+
+    @InjectRepository(Follow)
+    private readonly followRepository: Repository<Follow>,
   ) {
     this.supabase = createClient(
       process.env.SUPABASE_URL,
@@ -33,10 +39,11 @@ export class UsersService {
     );
   }
 
-  async getUserById(id: string) {
-    this.logger.log(`Getting user with id: ${id}`);
+  async getUserById(profileId: string, currentUserId?: string) {
+    this.logger.log(`Getting user with id: ${profileId}`);
+    
     const user = await this.userRepository.findOne({
-      where: { id },
+      where: { id: profileId },
       select: {
         id: true,
         nome: true,
@@ -51,28 +58,44 @@ export class UsersService {
     });
 
     if (!user) {
-      this.logger.warn(`User with id ${id} not found`);
-      throw new NotFoundException(`Usuário com id ${id} não encontrado`);
+      this.logger.warn(`User with id ${profileId} not found`);
+      throw new NotFoundException(`Usuário com id ${profileId} não encontrado`);
     }
 
+    let isFollowing = false;
+
+    // A verificação só faz sentido se houver um usuário logado (currentUserId)
+    // e se ele não estiver visualizando o próprio perfil.
+    if (currentUserId && currentUserId !== profileId) {
+      this.logger.log(`Checking follow status for viewer ${currentUserId} on profile ${profileId}`);
+      const follow = await this.followRepository.findOneBy({
+        followerId: currentUserId,
+        followingId: profileId,
+      });
+      
+      // '!!follow' converte o objeto (se encontrado) para true, e null/undefined para false.
+      isFollowing = !!follow; 
+      this.logger.log(`Follow status is: ${isFollowing}`);
+    }
+
+    // A lógica do Supabase para o avatar continua a mesma
     if (user.avatar) {
       this.logger.log(`Generating signed URL for avatar: ${user.avatar}`);
-
       const { data, error } = await this.supabase.storage
-        .from('nextfilms') // Certifique-se que este é o nome correto do seu bucket
-        .createSignedUrl(user.avatar, 60 * 60); // URL válida por 1 hora
+        .from('nextfilms')
+        .createSignedUrl(user.avatar, 3600); // 1 hora
 
-      this.logger.log(`Signed URL generation result: ${JSON.stringify(data)}`);
       if (error) {
         this.logger.error(`Error generating signed URL for avatar ${user.avatar}: ${error.message}`);
-        user.avatar = null;
+        user.avatar = null; // Ou uma URL de fallback
       } else {
         this.logger.log('Signed URL for avatar generated successfully.');
         user.avatar = data.signedUrl;
       }
     }
-    console.log(`User found: ${JSON.stringify(user)}`);
-    return user;
+    
+    // Retorna o objeto do usuário com a nova propriedade 'isFollowing'
+    return { ...user, isFollowing };
   }
 
   async getUserByEmail(email: string) {
@@ -183,5 +206,54 @@ export class UsersService {
     };
 
     return this.userRepository.save(updatedData);
+  }
+
+
+  // Métodos para seguir e deixar de seguir usuários
+  async followUser(followerId: string, followingId: string) {
+    if (followerId === followingId) {
+      throw new BadRequestException('Você não pode seguir a si mesmo.');
+    }
+
+    // Verifica se o usuário a ser seguido existe
+    const userToFollow = await this.userRepository.findOneBy({ id: followingId });
+    if (!userToFollow) {
+      throw new NotFoundException('Usuário a ser seguido não encontrado.');
+    }
+
+    const existingFollow = await this.followRepository.findOneBy({ followerId, followingId });
+    if (existingFollow) {
+      throw new ConflictException('Você já segue este usuário.');
+    }
+
+    const follow = this.followRepository.create({ followerId, followingId });
+    await this.followRepository.save(follow);
+    
+    return { message: 'Usuário seguido com sucesso!' };
+  }
+  
+  async unfollowUser(followerId: string, followingId: string) {
+    const result = await this.followRepository.delete({ followerId, followingId });
+
+    if (result.affected === 0) {
+      throw new NotFoundException('Você não segue este usuário.');
+    }
+  }
+
+  async getFollowing(userId: string): Promise<User[]> {
+    const follows = await this.followRepository.find({
+      where: { followerId: userId },
+      relations: ['following'], // 'following' é o nome da propriedade na FollowEntity
+    });
+    // Mapeia para retornar apenas a lista de usuários, removendo a camada de 'FollowEntity'
+    return follows.map(follow => follow.following);
+  }
+
+  async getFollowers(userId: string): Promise<User[]> {
+    const follows = await this.followRepository.find({
+      where: { followingId: userId },
+      relations: ['follower'], // 'follower' é o nome da propriedade na FollowEntity
+    });
+    return follows.map(follow => follow.follower);
   }
 }

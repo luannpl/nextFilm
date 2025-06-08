@@ -10,6 +10,7 @@ import { dataSourceOptions } from './data-source';
 import { ConfigModule } from '@nestjs/config';
 import { PostsModule } from './posts/posts.module';
 import { LikesModule } from './likes/likes.module';
+import { FollowModule } from './follow/follow.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -20,6 +21,7 @@ import { LikesModule } from './likes/likes.module';
     PostsModule,
     AuthModule,
     LikesModule,
+    FollowModule,
   ],
   controllers: [AppController],
   providers: [AppService],

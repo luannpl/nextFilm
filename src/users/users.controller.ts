@@ -10,6 +10,10 @@ import {
   UseInterceptors,
   UseGuards,
   UploadedFile,
+  ParseUUIDPipe,
+  HttpCode,
+  Req,
+  HttpStatus,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -19,6 +23,7 @@ import { User } from 'src/decorators/user.decorator';
 import { TokenPayload } from 'src/auth/auth';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { JwtOptionalAuthGuard } from 'src/guards/jwt-optional-auth.guard';
 
 @Controller('users')
 export class UsersController {
@@ -37,9 +42,11 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @UseGuards(JwtOptionalAuthGuard)
   @Get(':userId')
-  findOne(@Param('userId') userId: string) {
-    return this.usersService.getUserById(userId);
+  findOne(@Param('userId') userId: string, @User() user: TokenPayload) {
+    const { sub: currentUserId } = user;
+    return this.usersService.getUserById(userId, currentUserId);
   }
 
   @Get(':userId/posts')
@@ -72,14 +79,50 @@ export class UsersController {
     const { sub } = user
     return this.usersService.updateProfile(sub, updateUserDto, avatar);
   }
+  
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/follow')
+  followUser(
+    @User() user: TokenPayload,
+    @Param('id', ParseUUIDPipe) followingId: string,
+  ) {
+    const { sub: followerId }= user; // ID do usuário logado (do token JWT)
+    return this.usersService.followUser(followerId, followingId);
+  }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-  //   return this.usersService.update(+id, updateUserDto);
-  // }
+  /**
+   * Endpoint para DEIXAR DE SEGUIR um usuário.
+   * Ação requer que o usuário esteja autenticado.
+   * DELETE /users/:id/unfollow
+   */
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/unfollow')
+  @HttpCode(HttpStatus.NO_CONTENT) // Retorna 204 No Content em caso de sucesso
+  unfollowUser(
+    @User() user: TokenPayload,
+    @Param('id', ParseUUIDPipe) followingId: string,
+  ) {
+    const { sub: followerId } = user;
+    return this.usersService.unfollowUser(followerId, followingId);
+  }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.usersService.remove(+id);
-  // }
+  /**
+   * Endpoint para LISTAR todos os usuários que um determinado usuário segue.
+   * Rota pública.
+   * GET /users/:id/following
+   */
+  @Get(':id/following')
+  getFollowing(@Param('id', ParseUUIDPipe) userId: string) {
+    return this.usersService.getFollowing(userId);
+  }
+
+  /**
+   * Endpoint para LISTAR os seguidores de um determinado usuário.
+   * Rota pública.
+   * GET /users/:id/followers
+   */
+  @Get(':id/followers')
+  getFollowers(@Param('id', ParseUUIDPipe) userId: string) {
+    return this.usersService.getFollowers(userId);
+  }
 }
