@@ -39,7 +39,7 @@ export class UsersController {
 
   @Get(':userId')
   findOne(@Param('userId') userId: string) {
-    return this.usersService.findOne(userId);
+    return this.usersService.getUserById(userId);
   }
 
   @Get(':userId/posts')

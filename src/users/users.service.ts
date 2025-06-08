@@ -62,6 +62,7 @@ export class UsersService {
         .from('nextfilms') // Certifique-se que este é o nome correto do seu bucket
         .createSignedUrl(user.avatar, 60 * 60); // URL válida por 1 hora
 
+      this.logger.log(`Signed URL generation result: ${JSON.stringify(data)}`);
       if (error) {
         this.logger.error(`Error generating signed URL for avatar ${user.avatar}: ${error.message}`);
         user.avatar = null;
@@ -70,6 +71,7 @@ export class UsersService {
         user.avatar = data.signedUrl;
       }
     }
+    console.log(`User found: ${JSON.stringify(user)}`);
     return user;
   }
 

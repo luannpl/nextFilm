@@ -84,14 +84,13 @@ export class PostsController {
     return this.postsService.getPosts(+page, +limit, orderBy, userId);
   }
 
-  @Get('me')
+  @Get('/users/:userId')
   @UseGuards(JwtAuthGuard)
   async getPostsByLoggedUser(
-    @User() user: TokenPayload,
+    @Param('userId') userId: string,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
-    const userId = user.sub;
     return await this.postsService.getPostsByUserId(userId, +page, +limit);
   }
 
