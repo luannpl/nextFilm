@@ -171,7 +171,28 @@ export class PostsService {
       take,
       order: { [orderBy]: order },
       relations: ['user', 'comments', 'likes.user'],
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        imagePath: true,
+        likesCount: true,
+        user: {
+          id: true,
+          nome: true,
+          sobrenome: true,
+          usuario: true,
+          avatar: true, // Inclui o avatar do usuário
+        },
+        likes: {
+          id: true,
+          user: {
+            id: true, // Inclui apenas o ID do usuário que deu like
+          },
+        },
+      }
     });
+
 
     const postsWithSignedUrls = await Promise.all(
       posts.map(async (post) => {
@@ -203,9 +224,9 @@ export class PostsService {
             `Error generating signed URL for user avatar ${post.user?.avatar}: ${userAvatarResult.error.message}`,
           );
         }
-
+        
         const isLiked = userId
-          ? post.likes.some((like) => like.user?.id === userId)
+          ? post.likes.find((like) => like.user?.id === userId)
           : false;
 
         const userPayload = {
@@ -251,6 +272,64 @@ export class PostsService {
     }
 
     return post;
+  }
+
+  async getPostComments(postId: number) {
+    const post = await this.postRepository.findOne({
+      where: { id: postId },
+      relations: ['comments', 'comments.user'],
+      select: {
+        id: true,
+        comments: {
+          id: true,
+          descricao: true,
+          createdAt: true,
+          user: {
+            id: true,
+            nome: true,
+            sobrenome: true,
+            usuario: true,
+            avatar: true, // Inclui o avatar do usuário
+          },
+        },
+      }
+    });
+
+    if (!post) {
+      throw new BadRequestException('Post not found');
+    }
+
+    const commentsWithSignedUrls = await Promise.all(
+      post.comments.map(async (comment) => {
+        const userAvatarUrlPromise =
+          comment.user && comment.user.avatar
+            ? this.supabase.storage
+                .from('nextfilms')
+                .createSignedUrl(comment.user.avatar, 3600)
+            : Promise.resolve({ data: { signedUrl: null }, error: null });
+
+        const userAvatarResult = await userAvatarUrlPromise;
+
+        if (userAvatarResult.error) {
+          this.logger.error(
+            `Error generating signed URL for user avatar ${comment.user?.avatar}: ${userAvatarResult.error.message}`,
+          );
+        }
+
+        return {
+          ...comment,
+          user: {
+            ...comment.user,
+            avatar: userAvatarResult.data?.signedUrl || null,
+          },
+        };
+      }),
+    );
+
+    return {
+      ...post,
+      comments: commentsWithSignedUrls,
+    };
   }
 
   async getPostsByUserId(userId: string, page = 1, limit = 10) {

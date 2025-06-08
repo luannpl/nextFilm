@@ -77,13 +77,11 @@ export class PostsController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
     @Query('orderBy') orderBy: string = 'createdAt',
-    @User() user: TokenPayload | null,
+    @User() user?: TokenPayload,
   ) {
-    let userId = undefined;
-    if (user) {
-      userId = user.sub;
-    }
-    return await this.postsService.getPosts(+page, +limit, orderBy, userId);
+    const userId = user?.sub; 
+      
+    return this.postsService.getPosts(+page, +limit, orderBy, userId);
   }
 
   @Get('me')
@@ -104,7 +102,7 @@ export class PostsController {
 
   @Get(':id/comments')
   async getCommentsByPostId(@Param('id') id: number) {
-    return await this.postsService.getCommentsByPostId(id);
+    return await this.postsService.getPostComments(id);
   }
 
   @HttpCode(204)
